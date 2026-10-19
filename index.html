@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calendario Condiviso</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
+    h1 { text-align: center; color: #1c1e21; }
+    .card { background: white; border-radius: 8px; padding: 16px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .form-group { margin-bottom: 12px; }
+    label { display: block; font-weight: bold; margin-bottom: 4px; }
+    input, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    button { width: 100%; background: #0066cc; color: white; border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+    button:hover { background: #0052a3; }
+    .task-item { border-left: 4px solid #0066cc; background: #f9f9f9; padding: 10px; margin-bottom: 8px; border-radius: 0 4px 4px 0; }
+    .task-date { font-size: 0.85em; color: #666; }
+    .task-title { font-weight: bold; font-size: 1.1em; }
+    .task-author { font-size: 0.8em; color: #888; font-style: italic; }
+  </style>
+</head>
+<body>
+
+  <h1>📅 Calendario Condiviso</h1>
+
+  <div class="card">
+    <h3>Aggiungi un impegno</h3>
+    <div class="form-group">
+      <label for="title">Titolo</label>
+      <input type="text" id="title" placeholder="Es. Cena di compleanno">
+    </div>
+    <div class="form-group">
+      <label for="date">Data</label>
+      <input type="date" id="date">
+    </div>
+    <div class="form-group">
+      <label for="author">Il tuo nome</label>
+      <input type="text" id="author" placeholder="Es. Anna">
+    </div>
+    <div class="form-group">
+      <label for="notes">Note (opzionale)</label>
+      <textarea id="notes" rows="2"></textarea>
+    </div>
+    <button onclick="addTask()">Salva Impegno</button>
+  </div>
+
+  <div class="card">
+    <h3>Prossimi Impegni</h3>
+    <div id="taskList">Caricamento in corso...</div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://YOUR_SUPABASE_URL.supabase.co';
+    const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    async function fetchTasks() {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .order('date', { ascending: true });
+
+      const list = document.getElementById('taskList');
+      if (error) {
+        list.innerHTML = '<p style="color:red">Errore nel caricamento!</p>';
+        return;
+      }
+      if (!data || data.length === 0) {
+        list.innerHTML = '<p>Nessun impegno salvato.</p>';
+        return;
+      }
+
+      list.innerHTML = data.map(task => `
+        <div class="task-item">
+          <div class="task-date">📆 ${task.date || 'Senza data'}</div>
+          <div class="task-title">${task.title}</div>
+          ${task.notes ? `<div>${task.notes}</div>` : ''}
+          <div class="task-author">Aggiunto da: ${task.author || 'Anonimo'}</div>
+        </div>
+      `).join('');
+    }
+
+    async function addTask() {
+      const title = document.getElementById('title').value;
+      const date = document.getElementById('date').value;
+      const author = document.getElementById('author').value;
+      const notes = document.getElementById('notes').value;
+
+      if (!title) {
+        alert('Inserisci almeno un titolo!');
+        return;
+      }
+
+      const { error } = await supabase
+        .from('tasks')
+        .insert([{ title, date, author, notes }]);
+
+      if (error) {
+        alert('Errore nel salvataggio!');
+      } else {
+        document.getElementById('title').value = '';
+        document.getElementById('date').value = '';
+        document.getElementById('author').value = '';
+        document.getElementById('notes').value = '';
+        fetchTasks();
+      }
+    }
+
+    fetchTasks();
+  </script>
+
+</body>
+</html>
